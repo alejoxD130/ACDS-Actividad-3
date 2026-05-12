@@ -141,27 +141,27 @@ function exportarCSV($path) {
     return true;
 }
 
+// CORRECCIÓN: Cálculo real de valor (Precio x Stock)
 function calcularValorInventario() {
     global $inventarioCache;
-
     $total = 0;
-
     foreach ($inventarioCache as $p) {
-        $total += $p["precio"];
+        $total += ($p["precio"] * $p["stock"]);
     }
-
     return $total;
 }
-
 function syncCache() {
     global $inventarioCache;
     $inventarioCache = cargarInventario();
 }
 
+// CORRECCIÓN: Seguridad contra Inyección SQL
 function registrarMovimiento($nombre, $tipo, $cantidad) {
     $c = conexion();
-    $sql = "INSERT INTO movimientos (producto, tipo, cantidad) VALUES ('$nombre','$tipo',$cantidad)";
-    $c->query($sql);
+    $stmt = $c->prepare("INSERT INTO movimientos (producto, tipo, cantidad) VALUES (?, ?, ?)");
+    $stmt->bind_param("ssi", $nombre, $tipo, $cantidad);
+    $stmt->execute();
+    $c->close();
 }
 
 function procesarVenta($items) {
@@ -261,8 +261,10 @@ $totalCamisa = totalPorProducto("camisa");
 echo $totalCamisa;
 
 $i = 0;
+// CORRECCIÓN: Se agrega el incremento de $i para evitar bucle infinito
 while ($i < count($inventarioCache)) {
-    echo $inventarioCache[$i]["nombre"];
+    echo $inventarioCache[$i]["nombre"] . "<br>";
+    $i++; 
 }
 
 $ultimaOperacion = null;
